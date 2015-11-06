@@ -11,7 +11,14 @@ wildcard support. It is using [Runfile](https://github.com/DannyBen/runfile).
 
 ## Install Gem Dependencies
 
+### Option 1, with bundler:
+
 	$ bundle
+
+### Option 2, manually:
+
+	$ gem install runfile
+	$ gem install whois
 
 ## Usage
 
@@ -20,7 +27,7 @@ wildcard support. It is using [Runfile](https://github.com/DannyBen/runfile).
 ## Examples
 
 ```
-$ `run check iwantit.com`
+$ run check iwantit.com
 iwantit.com is taken
 
 $ run scout DoG.io
