@@ -29,4 +29,13 @@ class TransformTest < MiniTest::Test
     assert_match /^a{0,7}$/, transform('A?A?A?A?A?A?A?')
   end
 
+  def test_all
+    v = "[aeiou]"
+    c = "[bcdfghjklmnpqrstvwxyz]"
+    n = "[0123456789]"
+    expected = /i#{v}[abc]#{n}(one|two)x?y?z[def]#{n}(three|four)#{v}o/
+    actual   = transform 'Ii[abc]#(one two)X?Y?Z[def]#(three four)oO'
+    assert_match expected, actual
+  end
+
 end
