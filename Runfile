@@ -1,30 +1,29 @@
 require 'whois'
 require 'resolv'
 
+# Runfile Details
+
 name    "ismine"
 summary "Domain checker with wildcard support"
-version "0.1.0"
+version "0.1.1"
+
+# Runfile Actions
 
 usage  "check <domain> [--deep]"
 help   "Check a single domain for availability by DNS and by Whois record"
-option "<domain>", "Full domain name to check"
-option "-d --deep", "Also perform Whois check in case the DNS check shows that the domain is available"
 action :check do |args|
   run_check args['<domain>'], args['--deep']
 end
 
 usage  "scout <pattern> [<tld> --count <count> --deep]"
 help   "Look for available domain names by pattern"
-option "<pattern>", "Domain search pattern\nlowercase letters: will be replaced with similar letters (vowels, consonants)\nuppercase letters: will be used as is\n[list]: will be replaced with one letter from the list\nletter followed by a question mark: will sometimes be removed"
-option "<tld>", "Top level domain to check [default: com]\nYou can also append it directly to the <pattern>, like domain.co.uk"
-option "-c --count <count>", "Number of times to run [default: 5]"
 action :scout do |args|
   pattern = args['<pattern>']
-  tld     = args['<tld>']
+  tld     = args['<tld>'] || 'com'
   count   = args['--count'].to_i
   deep    = args['--deep']
-  
-  if pattern =~ /([^.]+)?\.(.+)/
+
+  if pattern =~ /([^.]+)\.(.+)/
     pattern = $1
     tld     = $2
   end
@@ -44,7 +43,25 @@ action :ideas do |args|
   run_ideas pattern, args['--count'].to_i
 end
 
-# Helpers
+# Runfile Options
+
+pattern_help = [
+  "Domain search pattern",
+  "uppercase letters: will be used as is",
+  "lowercase letters: will be replaced with similar letters (vowels, consonants)",
+  "[letters]: will be replaced with one letter from the list",
+  "(word another): will be replaced with one of the words",
+  "letter followed by a question mark: will sometimes be removed",
+  "hash sign (\#): will be replaced by a digit"
+].join "\n"
+
+option "<domain>", "Full domain name to check"
+option "<pattern>", pattern_help
+option "<tld>", "Top level domain to check [default: com]\nYou can also append it directly to the <pattern>, like domain.co.uk"
+option "-d --deep", "Also perform Whois check in case the DNS check shows that the domain is available"
+option "-c --count <count>", "Number of times to run [default: 5]"
+
+# Runners (each generate output)
 
 def run_check(domain, deep=false)
   available = available?(domain, deep)
@@ -54,30 +71,34 @@ def run_check(domain, deep=false)
 end
 
 def run_ideas(pattern, count)
-  count.times do
-    say "!txtgrn!#{transform pattern}"
+  ideas = ideas_list pattern, count
+  ideas.each do |idea|
+    say "!txtgrn!#{idea}"
   end
 end
 
 def run_scout(pattern, tld, count, deep)
-  cache = []
-  count.times do
-    domain = "#{transform pattern}.#{tld}"
-    if !cache.include? domain
-      cache << domain
-      run_check domain, deep
-    end
+  ideas = ideas_list pattern, count
+  ideas.each do |idea|
+    domain = "#{idea}.#{tld}"
+    run_check domain, deep
   end
 end
 
+# Transformers
+
+# Run a patter through the full battery of transformations. Order matters.
 def transform(pattern)
   result = pattern
-  result = transform_groups result
+  result = transform_letters result
+  result = transform_words result
   result = transform_lowercase result
+  result = transform_digit result
   result = transform_optional result
 end
 
-def transform_groups(pattern)
+# Transform letter groups [asd] to a single letter
+def transform_letters(pattern)
   result = pattern.dup
   pattern.scan /(\[([a-z1-9]+)\])/ do |m|
     replace_me = m[0]
@@ -87,6 +108,19 @@ def transform_groups(pattern)
   result
 end
 
+# Transform word lists (word1 word2) to a single word
+def transform_words(pattern)
+  result = pattern.dup
+  pattern.scan /(\(([^\)]+)\))/ do |m|
+    replace_me = m[0]
+    words      = m[1].split ' '
+    word       = words[rand(0...words.size)]
+    result.sub! replace_me, word.upcase
+  end
+  result
+end
+
+# Transform lowercase letters to a random consonant or vowel
 def transform_lowercase(pattern)
   result = pattern.gsub /[a-z]/ do |ch|
     similar_letter(ch)
@@ -94,19 +128,21 @@ def transform_lowercase(pattern)
   result.downcase
 end
 
+# Transform 'a?' to either 'a' or ''
 def transform_optional(pattern)
   pattern.gsub /(.)\?/ do
     rand(0..1) == 0 ? $1 : ''
   end
 end
 
-def similar_letter(letter)
-  lists = ["aeiou", "bcdfghjklmnpqrstvwxyz"]
-  lists.each do |list|
-    return list[rand(0...list.size)] if list.include?(letter)
+# Transform '#' to a random digit
+def transform_digit(pattern)
+  pattern.gsub /#/ do
+    rand(0..9)
   end
-  return letter
 end
+
+# Domain Helpers
 
 # Check if domain is available by DNS record first. If it is available and 
 # deep-true, will also check by a whois record
@@ -118,7 +154,8 @@ def available?(domain, deep=false)
   end
 end
 
-# Check if domain is available by resolving name
+# Check if domain is available by resolving name (DNS). Faster, but less 
+# accurate
 def dns_available?(domain)
   begin
     name = Resolv::DNS.new.getaddress domain
@@ -128,7 +165,37 @@ def dns_available?(domain)
   end
 end
 
-# Check if domain is available by whois record
+# Check if domain is available by whois record. Slower but more accurate.
 def whois_available?(domain)
   Whois.whois(domain).available?
+end
+
+# Other Helpers
+
+# Get a letter and return a letter from the same group
+def similar_letter(letter)
+  letter = letter.downcase
+  lists = ["aeiou", "bcdfghjklmnpqrstvwxyz"]
+  lists.each do |list|
+    return list[rand(0...list.size)] if list.include?(letter)
+  end
+  return letter
+end
+
+# Get a pattern and return up to count number of ideas
+# Since some transformers use randomizers, we will loop more times than needed
+# to get ideas, and stop when we reach the cap. This increases the chances of
+# getting the maximum amount of possibilities our of the pattern.
+def ideas_list(pattern, count=5)
+  ideas = []
+  done_count = 0
+  (3 * count).times do
+    idea = transform pattern
+    if !ideas.include? idea
+      ideas << idea
+      done_count += 1
+      break if done_count >= count
+    end
+  end
+  ideas
 end
