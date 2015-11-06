@@ -67,3 +67,28 @@ Options:
   --version
       Show version number
 ```
+
+## Examples
+
+```
+$ `run check iwantit.com`
+iwantit.com is taken
+
+$ run scout DoG.io
+dog.io is probably available
+dug.io is taken
+deg.io is taken
+
+$ run scout DoG.io --deep
+dog.io is taken
+dug.io is taken
+deg.io is taken
+
+$ run scout MY[dlh]OG.co
+myhog.co is probably available
+mylog.co is taken
+mydog.co is taken
+
+
+
+```
