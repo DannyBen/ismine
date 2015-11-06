@@ -1,0 +1,134 @@
+require 'whois'
+require 'resolv'
+
+name    "ismine"
+summary "Domain checker with wildcard support"
+version "0.1.0"
+
+usage  "check <domain> [--deep]"
+help   "Check a single domain for availability by DNS and by Whois record"
+option "<domain>", "Full domain name to check"
+option "-d --deep", "Also perform Whois check in case the DNS check shows that the domain is available"
+action :check do |args|
+  run_check args['<domain>'], args['--deep']
+end
+
+usage  "scout <pattern> [<tld> --count <count> --deep]"
+help   "Look for available domain names by pattern"
+option "<pattern>", "Domain search pattern\nlowercase letters: will be replaced with similar letters (vowels, consonants)\nuppercase letters: will be used as is\n[list]: will be replaced with one letter from the list\nletter followed by a question mark: will sometimes be removed"
+option "<tld>", "Top level domain to check [default: com]\nYou can also append it directly to the <pattern>, like domain.co.uk"
+option "-c --count <count>", "Number of times to run [default: 5]"
+action :scout do |args|
+  pattern = args['<pattern>']
+  tld     = args['<tld>']
+  count   = args['--count'].to_i
+  deep    = args['--deep']
+  
+  if pattern =~ /([^.]+)?\.(.+)/
+    pattern = $1
+    tld     = $2
+  end
+
+  run_scout pattern, tld, count, deep
+end
+
+usage  "ideas <pattern> [--count <count>]"
+help   "Generate name ideas by pattern without checking for domain availability"
+action :ideas do |args|
+  pattern = args['<pattern>']
+  
+  if pattern =~ /([^.]+)?\.(.+)/
+    pattern = $1
+  end
+
+  run_ideas pattern, args['--count'].to_i
+end
+
+# Helpers
+
+def run_check(domain, deep=false)
+  available = available?(domain, deep)
+  taken_message = "!txtred!#{domain} is taken"
+  available_message = deep ? "!txtgrn!#{domain} is available" : "!txtgrn!#{domain} is probably available"
+  say available ? available_message : taken_message
+end
+
+def run_ideas(pattern, count)
+  count.times do
+    say "!txtgrn!#{transform pattern}"
+  end
+end
+
+def run_scout(pattern, tld, count, deep)
+  cache = []
+  count.times do
+    domain = "#{transform pattern}.#{tld}"
+    if !cache.include? domain
+      cache << domain
+      run_check domain, deep
+    end
+  end
+end
+
+def transform(pattern)
+  result = pattern
+  result = transform_groups result
+  result = transform_lowercase result
+  result = transform_optional result
+end
+
+def transform_groups(pattern)
+  result = pattern.dup
+  pattern.scan /(\[([a-z1-9]+)\])/ do |m|
+    replace_me = m[0]
+    letters    = m[1]
+    result.sub! replace_me, letters[rand(0...letters.size)].upcase
+  end
+  result
+end
+
+def transform_lowercase(pattern)
+  result = pattern.gsub /[a-z]/ do |ch|
+    similar_letter(ch)
+  end
+  result.downcase
+end
+
+def transform_optional(pattern)
+  pattern.gsub /(.)\?/ do
+    rand(0..1) == 0 ? $1 : ''
+  end
+end
+
+def similar_letter(letter)
+  lists = ["aeiou", "bcdfghjklmnpqrstvwxyz"]
+  lists.each do |list|
+    return list[rand(0...list.size)] if list.include?(letter)
+  end
+  return letter
+end
+
+# Check if domain is available by DNS record first. If it is available and 
+# deep-true, will also check by a whois record
+def available?(domain, deep=false)
+  if deep
+    dns_available?(domain) ? whois_available?(domain) : false
+  else
+    dns_available?(domain)
+  end
+end
+
+# Check if domain is available by resolving name
+def dns_available?(domain)
+  begin
+    name = Resolv::DNS.new.getaddress domain
+    return false
+  rescue Resolv::ResolvError
+    return true
+  end
+end
+
+# Check if domain is available by whois record
+def whois_available?(domain)
+  Whois.whois(domain).available?
+end
