@@ -11,11 +11,11 @@ wildcard support. It is using [Runfile](https://github.com/DannyBen/runfile).
 
 ## Install Gem Dependencies
 
-### Option 1, with bundler:
+Option 1, with bundler:
 
 	$ bundle
 
-### Option 2, manually:
+Option 2, manually:
 
 	$ gem install runfile
 	$ gem install whois
