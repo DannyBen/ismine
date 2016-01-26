@@ -2,7 +2,7 @@ require_relative 'test_helper'
 
 class DomainTest < MiniTest::Test
   def setup
-    @domain           = "mydog.io" # Must be available by DNS but not by Whois
+    @domain           = "mycat.co" # Must be available by DNS but not by Whois
     @available_domain = "thisoneisavailablefoshizzle.co.uk"
     @taken_domain     = "hello.com"
   end

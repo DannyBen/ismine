@@ -1,22 +1,29 @@
 require 'whois'
 require 'resolv'
 
+trap(:INT) { abort "\nGoodbye" }
+
 # Runfile Details
 
 name    "ismine"
 summary "Domain checker with wildcard support"
 version "0.1.1"
 
-# Runfile Actions
+# Runfile Action --deeps
 
 usage  "check <domain> [--deep]"
 help   "Check a single domain for availability by DNS and by Whois record"
+example "check iwantit.com"
 action :check do |args|
   run_check args['<domain>'], args['--deep']
 end
 
 usage  "scout <pattern> [<tld> --count <count> --deep]"
 help   "Look for available domain names by pattern"
+example "scout DoG.io --deep"
+example "scout HELLOKiTTi io --count 3"
+example "scout THE[cb]AR.co.uk --deep"
+example "scout \"(black white)(cat dog)\" io"
 action :scout do |args|
   pattern = args['<pattern>']
   tld     = args['<tld>'] || 'com'
@@ -33,6 +40,7 @@ end
 
 usage  "ideas <pattern> [--count <count>]"
 help   "Generate name ideas by pattern without checking for domain availability"
+example "ideas RED[bcl]OO?[dgm]"
 action :ideas do |args|
   pattern = args['<pattern>']
   
