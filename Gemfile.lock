@@ -1,7 +1,7 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    activesupport (4.2.5.1)
+    activesupport (4.2.6)
       i18n (~> 0.7)
       json (~> 1.7, >= 1.7.7)
       minitest (~> 5.1)
@@ -9,19 +9,19 @@ GEM
       tzinfo (~> 1.1)
     ansi (1.5.0)
     builder (3.2.2)
-    colsole (0.3.2)
+    colsole (0.3.3)
     docopt (0.5.0)
     i18n (0.7.0)
     json (1.8.3)
     minitest (5.8.4)
-    minitest-reporters (1.1.7)
+    minitest-reporters (1.1.8)
       ansi
       builder
       minitest (>= 5.0)
       ruby-progressbar
     ruby-progressbar (1.7.5)
-    runfile (0.5.4)
-      colsole (~> 0.2)
+    runfile (0.6.2)
+      colsole (~> 0.3)
       docopt (~> 0.5)
     thread_safe (0.3.5)
     tzinfo (1.2.2)
