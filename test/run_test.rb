@@ -31,6 +31,4 @@ class RunTest < MiniTest::Test
     assert_match "bad.com is taken good.com is taken", output
   end
 
-
-
 end

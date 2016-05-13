@@ -22,5 +22,4 @@ class DomainTest < MiniTest::Test
     refute whois_available? @taken_domain
   end
 
-
 end
