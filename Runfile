@@ -5,9 +5,9 @@ trap(:INT) { abort "\nGoodbye" }
 
 # Runfile Details
 
-title   "ismine"
+name    "ismine"
 summary "Domain checker with wildcard support"
-version "0.1.2"
+version "0.1.1"
 
 # Runfile Action --deeps
 
