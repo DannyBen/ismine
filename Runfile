@@ -1,15 +1,16 @@
-require 'whois'
+Bundler.require :default, :development
 require 'resolv'
+
 
 trap(:INT) { abort "\nGoodbye" }
 
 # Runfile Details
 
-name    "ismine"
+title   "ismine"
 summary "Domain checker with wildcard support"
-version "0.1.1"
+version "0.1.2"
 
-# Runfile Action --deeps
+# Runfile Actions
 
 usage  "check <domain> [--deep]"
 help   "Check a single domain for availability by DNS and by Whois record"
@@ -175,7 +176,7 @@ end
 
 # Check if domain is available by whois record. Slower but more accurate.
 def whois_available?(domain)
-  Whois.whois(domain).available?
+  Whois.whois(domain).parser.available?
 end
 
 # Other Helpers
