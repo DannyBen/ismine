@@ -14,13 +14,14 @@ GEM
     docopt (0.6.0)
     i18n (0.9.1)
       concurrent-ruby (~> 1.0)
-    minitest (5.10.3)
+    minitest (5.11.1)
     minitest-reporters (1.1.19)
       ansi
       builder
       minitest (>= 5.0)
       ruby-progressbar
     pretty_trace (0.2.1)
+    rake (12.3.0)
     ruby-progressbar (1.9.0)
     runfile (0.10.0)
       colsole (~> 0.5)
@@ -41,9 +42,10 @@ DEPENDENCIES
   minitest
   minitest-reporters
   pretty_trace
+  rake
   runfile
   whois
   whois-parser
 
 BUNDLED WITH
-   1.16.0
+   1.16.1

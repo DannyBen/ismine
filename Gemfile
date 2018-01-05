@@ -10,6 +10,7 @@ group :development do
 end
 
 group :test do 
+  gem 'rake', require: false
   gem 'minitest'
   gem 'minitest-reporters'
 end
