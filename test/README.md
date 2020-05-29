@@ -1,4 +1,3 @@
-Tests
-==================================================
+# Tests
 
-To run tests, execute `rake`.
+To run tests, execute `bundle exec rake`.
