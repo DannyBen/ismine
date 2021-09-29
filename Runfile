@@ -1,6 +1,7 @@
 require 'bundler'
 Bundler.require :default, :development
 require 'resolv'
+include Colsole
 
 
 trap(:INT) { abort "\nGoodbye" }
