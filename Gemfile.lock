@@ -1,7 +1,7 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    activesupport (6.1.4.1)
+    activesupport (6.1.4.4)
       concurrent-ruby (~> 1.0, >= 1.0.2)
       i18n (>= 1.6, < 2)
       minitest (>= 5.1)
@@ -13,9 +13,9 @@ GEM
     colsole (0.7.2)
     concurrent-ruby (1.1.9)
     docopt (0.6.1)
-    i18n (1.8.10)
+    i18n (1.8.11)
       concurrent-ruby (~> 1.0)
-    minitest (5.14.4)
+    minitest (5.15.0)
     minitest-reporters (1.4.3)
       ansi
       builder
@@ -32,12 +32,13 @@ GEM
     whois-parser (1.2.0)
       activesupport (>= 4)
       whois (>= 4.0.7)
-    zeitwerk (2.4.2)
+    zeitwerk (2.5.2)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
+  activesupport (< 7)
   byebug
   colsole
   minitest
@@ -45,7 +46,6 @@ DEPENDENCIES
   pretty_trace
   rake
   runfile
-  whois
   whois-parser
 
 BUNDLED WITH
