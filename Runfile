@@ -41,17 +41,18 @@ action :scout do |args|
   run_scout pattern, tld, count, deep
 end
 
-usage  "ideas <pattern> [--count <count>]"
+usage  "ideas <pattern> [--count <count> --upcase]"
 help   "Generate name ideas by pattern without checking for domain availability"
 example "ideas RED[bcl]OO?[dgm]"
 action :ideas do |args|
   pattern = args['<pattern>']
+  upcase = args['--upcase']
   
   if pattern =~ /([^.]+)?\.(.+)/
     pattern = $1
   end
 
-  run_ideas pattern, args['--count'].to_i
+  run_ideas pattern, args['--count'].to_i, upcase
 end
 
 # Runfile Options
@@ -71,6 +72,7 @@ option "<pattern>", pattern_help
 option "<tld>", "Top level domain to check [default: com]\nYou can also append it directly to the <pattern>, like domain.co.uk"
 option "-d --deep", "Also perform Whois check in case the DNS check shows that the domain is available"
 option "-c --count <count>", "Number of times to run [default: 5]"
+option "-u --upcase", "Output in uppercase"
 
 # Runners (each generate output)
 
@@ -81,9 +83,10 @@ def run_check(domain, deep=false)
   say available ? available_message : taken_message
 end
 
-def run_ideas(pattern, count)
+def run_ideas(pattern, count, upcase=false)
   ideas = ideas_list pattern, count
   ideas.each do |idea|
+    idea = idea.upcase if upcase
     say "!txtgrn!#{idea}"
   end
 end
