@@ -4,7 +4,7 @@ require 'resolv'
 
 title   "ismine"
 summary "Domain checker with wildcard support"
-version "0.1.2"
+version "0.2.0"
 
 usage  "check DOMAIN [--deep]"
 help   "Check a single domain for availability by DNS and by Whois record"
@@ -67,8 +67,8 @@ option "-u --upcase", "Output in uppercase"
 helpers do
   def run_check(domain, deep=false)
     available = available?(domain, deep)
-    taken_message = "!txtred!#{domain} is taken"
-    available_message = deep ? "!txtgrn!#{domain} is available" : "!txtgrn!#{domain} is probably available"
+    taken_message = "r`#{domain} is taken`"
+    available_message = deep ? "g`#{domain} is available`" : "g`#{domain} is probably available`"
     say available ? available_message : taken_message
   end
 
@@ -76,7 +76,7 @@ helpers do
     ideas = ideas_list pattern, count
     ideas.each do |idea|
       idea = idea.upcase if upcase
-      say "!txtgrn!#{idea}"
+      say "g`#{idea}`"
     end
   end
 
