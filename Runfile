@@ -1,35 +1,27 @@
 require 'bundler'
 Bundler.require :default, :development
 require 'resolv'
-include Colsole
-
-
-trap(:INT) { abort "\nGoodbye" }
-
-# Runfile Details
 
 title   "ismine"
 summary "Domain checker with wildcard support"
 version "0.1.2"
 
-# Runfile Actions
-
-usage  "check <domain> [--deep]"
+usage  "check DOMAIN [--deep]"
 help   "Check a single domain for availability by DNS and by Whois record"
 example "check iwantit.com"
 action :check do |args|
-  run_check args['<domain>'], args['--deep']
+  run_check args['DOMAIN'], args['--deep']
 end
 
-usage  "scout <pattern> [<tld> --count <count> --deep]"
+usage  "scout PATTERN [TLD --count COUNT --deep]"
 help   "Look for available domain names by pattern"
 example "scout DoG.io --deep"
 example "scout HELLOKiTTi io --count 3"
 example "scout THE[cb]AR.co.uk --deep"
 example "scout \"(black white)(cat dog)\" io"
 action :scout do |args|
-  pattern = args['<pattern>']
-  tld     = args['<tld>'] || 'com'
+  pattern = args['PATTERN']
+  tld     = args['TLD'] || 'com'
   count   = args['--count'].to_i
   deep    = args['--deep']
 
@@ -41,11 +33,11 @@ action :scout do |args|
   run_scout pattern, tld, count, deep
 end
 
-usage  "ideas <pattern> [--count <count> --upcase]"
+usage  "ideas PATTERN [--count COUNT --upcase]"
 help   "Generate name ideas by pattern without checking for domain availability"
 example "ideas RED[bcl]OO?[dgm]"
 action :ideas do |args|
-  pattern = args['<pattern>']
+  pattern = args['PATTERN']
   upcase = args['--upcase']
   
   if pattern =~ /([^.]+)?\.(.+)/
@@ -55,161 +47,159 @@ action :ideas do |args|
   run_ideas pattern, args['--count'].to_i, upcase
 end
 
-# Runfile Options
+param "DOMAIN", "Full domain name to check"
+param "PATTERN", <<~USAGE
+  Domain search pattern:
+  - uppercase letters: will be used as is
+  - lowercase letters: will be replaced with similar letters
+    (vowels, consonants)
+  - [letters]: will be replaced with one letter from the list
+  - (word another): will be replaced with one of the words
+  - letter followed by a question mark: will sometimes be removed
+  - hash sign (#): will be replaced by a digit
+USAGE
+param "TLD", "Top level domain to check [default: com]\nYou can also append it directly to the PATTERN, like domain.co.uk"
 
-pattern_help = [
-  "Domain search pattern",
-  "uppercase letters: will be used as is",
-  "lowercase letters: will be replaced with similar letters (vowels, consonants)",
-  "[letters]: will be replaced with one letter from the list",
-  "(word another): will be replaced with one of the words",
-  "letter followed by a question mark: will sometimes be removed",
-  "hash sign (\#): will be replaced by a digit"
-].join "\n"
-
-option "<domain>", "Full domain name to check"
-option "<pattern>", pattern_help
-option "<tld>", "Top level domain to check [default: com]\nYou can also append it directly to the <pattern>, like domain.co.uk"
 option "-d --deep", "Also perform Whois check in case the DNS check shows that the domain is available"
-option "-c --count <count>", "Number of times to run [default: 5]"
+option "-c --count COUNT", "Number of times to run [default: 5]"
 option "-u --upcase", "Output in uppercase"
 
-# Runners (each generate output)
-
-def run_check(domain, deep=false)
-  available = available?(domain, deep)
-  taken_message = "!txtred!#{domain} is taken"
-  available_message = deep ? "!txtgrn!#{domain} is available" : "!txtgrn!#{domain} is probably available"
-  say available ? available_message : taken_message
-end
-
-def run_ideas(pattern, count, upcase=false)
-  ideas = ideas_list pattern, count
-  ideas.each do |idea|
-    idea = idea.upcase if upcase
-    say "!txtgrn!#{idea}"
+helpers do
+  def run_check(domain, deep=false)
+    available = available?(domain, deep)
+    taken_message = "!txtred!#{domain} is taken"
+    available_message = deep ? "!txtgrn!#{domain} is available" : "!txtgrn!#{domain} is probably available"
+    say available ? available_message : taken_message
   end
-end
 
-def run_scout(pattern, tld, count, deep)
-  ideas = ideas_list pattern, count
-  ideas.each do |idea|
-    domain = "#{idea}.#{tld}"
-    run_check domain, deep
-  end
-end
-
-# Transformers
-
-# Run a patter through the full battery of transformations. Order matters.
-def transform(pattern)
-  result = pattern
-  result = transform_letters result
-  result = transform_words result
-  result = transform_lowercase result
-  result = transform_digit result
-  result = transform_optional result
-end
-
-# Transform letter groups [asd] to a single letter
-def transform_letters(pattern)
-  result = pattern.dup
-  pattern.scan /(\[([a-z1-9]+)\])/ do |m|
-    replace_me = m[0]
-    letters    = m[1]
-    result.sub! replace_me, letters[rand(0...letters.size)].upcase
-  end
-  result
-end
-
-# Transform word lists (word1 word2) to a single word
-def transform_words(pattern)
-  result = pattern.dup
-  pattern.scan /(\(([^\)]+)\))/ do |m|
-    replace_me = m[0]
-    words      = m[1].split ' '
-    word       = words[rand(0...words.size)]
-    result.sub! replace_me, word.upcase
-  end
-  result
-end
-
-# Transform lowercase letters to a random consonant or vowel
-def transform_lowercase(pattern)
-  result = pattern.gsub /[a-z]/ do |ch|
-    similar_letter(ch)
-  end
-  result.downcase
-end
-
-# Transform 'a?' to either 'a' or ''
-def transform_optional(pattern)
-  pattern.gsub /(.)\?/ do
-    rand(0..1) == 0 ? $1 : ''
-  end
-end
-
-# Transform '#' to a random digit
-def transform_digit(pattern)
-  pattern.gsub /#/ do
-    rand(0..9)
-  end
-end
-
-# Domain Helpers
-
-# Check if domain is available by DNS record first. If it is available and 
-# deep-true, will also check by a whois record
-def available?(domain, deep=false)
-  if deep
-    dns_available?(domain) ? whois_available?(domain) : false
-  else
-    dns_available?(domain)
-  end
-end
-
-# Check if domain is available by resolving name (DNS). Faster, but less 
-# accurate
-def dns_available?(domain)
-  begin
-    name = Resolv::DNS.new.getaddress domain
-    return false
-  rescue Resolv::ResolvError
-    return true
-  end
-end
-
-# Check if domain is available by whois record. Slower but more accurate.
-def whois_available?(domain)
-  Whois.whois(domain).parser.available?
-end
-
-# Other Helpers
-
-# Get a letter and return a letter from the same group
-def similar_letter(letter)
-  letter = letter.downcase
-  lists = ["aeiou", "bcdfghjklmnpqrstvwxyz"]
-  lists.each do |list|
-    return list[rand(0...list.size)] if list.include?(letter)
-  end
-  return letter
-end
-
-# Get a pattern and return up to count number of ideas
-# Since some transformers use randomizers, we will loop more times than needed
-# to get ideas, and stop when we reach the cap. This increases the chances of
-# getting the maximum amount of possibilities our of the pattern.
-def ideas_list(pattern, count=5)
-  ideas = []
-  done_count = 0
-  (3 * count).times do
-    idea = transform pattern
-    if !ideas.include? idea
-      ideas << idea
-      done_count += 1
-      break if done_count >= count
+  def run_ideas(pattern, count, upcase=false)
+    ideas = ideas_list pattern, count
+    ideas.each do |idea|
+      idea = idea.upcase if upcase
+      say "!txtgrn!#{idea}"
     end
   end
-  ideas
+
+  def run_scout(pattern, tld, count, deep)
+    ideas = ideas_list pattern, count
+    ideas.each do |idea|
+      domain = "#{idea}.#{tld}"
+      run_check domain, deep
+    end
+  end
+
+  # Transformers
+
+  # Run a patter through the full battery of transformations. Order matters.
+  def transform(pattern)
+    result = pattern
+    result = transform_letters result
+    result = transform_words result
+    result = transform_lowercase result
+    result = transform_digit result
+    result = transform_optional result
+  end
+
+  # Transform letter groups [asd] to a single letter
+  def transform_letters(pattern)
+    result = pattern.dup
+    pattern.scan /(\[([a-z1-9]+)\])/ do |m|
+      replace_me = m[0]
+      letters    = m[1]
+      result.sub! replace_me, letters[rand(0...letters.size)].upcase
+    end
+    result
+  end
+
+  # Transform word lists (word1 word2) to a single word
+  def transform_words(pattern)
+    result = pattern.dup
+    pattern.scan /(\(([^\)]+)\))/ do |m|
+      replace_me = m[0]
+      words      = m[1].split ' '
+      word       = words[rand(0...words.size)]
+      result.sub! replace_me, word.upcase
+    end
+    result
+  end
+
+  # Transform lowercase letters to a random consonant or vowel
+  def transform_lowercase(pattern)
+    result = pattern.gsub /[a-z]/ do |ch|
+      similar_letter(ch)
+    end
+    result.downcase
+  end
+
+  # Transform 'a?' to either 'a' or ''
+  def transform_optional(pattern)
+    pattern.gsub /(.)\?/ do
+      rand(0..1) == 0 ? $1 : ''
+    end
+  end
+
+  # Transform '#' to a random digit
+  def transform_digit(pattern)
+    pattern.gsub /#/ do
+      rand(0..9)
+    end
+  end
+
+  # Domain Helpers
+
+  # Check if domain is available by DNS record first. If it is available and 
+  # deep-true, will also check by a whois record
+  def available?(domain, deep=false)
+    if deep
+      dns_available?(domain) ? whois_available?(domain) : false
+    else
+      dns_available?(domain)
+    end
+  end
+
+  # Check if domain is available by resolving name (DNS). Faster, but less 
+  # accurate
+  def dns_available?(domain)
+    begin
+      name = Resolv::DNS.new.getaddress domain
+      return false
+    rescue Resolv::ResolvError
+      return true
+    end
+  end
+
+  # Check if domain is available by whois record. Slower but more accurate.
+  def whois_available?(domain)
+    Whois.whois(domain).parser.available?
+  end
+
+  # Other Helpers
+
+  # Get a letter and return a letter from the same group
+  def similar_letter(letter)
+    letter = letter.downcase
+    lists = ["aeiou", "bcdfghjklmnpqrstvwxyz"]
+    lists.each do |list|
+      return list[rand(0...list.size)] if list.include?(letter)
+    end
+    return letter
+  end
+
+  # Get a pattern and return up to count number of ideas
+  # Since some transformers use randomizers, we will loop more times than needed
+  # to get ideas, and stop when we reach the cap. This increases the chances of
+  # getting the maximum amount of possibilities our of the pattern.
+  def ideas_list(pattern, count=5)
+    ideas = []
+    done_count = 0
+    (3 * count).times do
+      idea = transform pattern
+      if !ideas.include? idea
+        ideas << idea
+        done_count += 1
+        break if done_count >= count
+      end
+    end
+    ideas
+  end
 end
