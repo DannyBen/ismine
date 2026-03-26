@@ -7,5 +7,5 @@ gem "whois-parser"
 gem "pretty_trace", require: 'pretty_trace/enable-trim'
 
 group :development do 
-  gem "byebug"
+  gem "debug"
 end
